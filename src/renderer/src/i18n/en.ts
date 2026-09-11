@@ -1,4 +1,4 @@
-﻿export const en = {
+export const en = {
   appName: 'Heart',
   tagline: 'Optimize your Windows system with carefully curated performance tweaks.',
   nav: {
@@ -29,13 +29,13 @@
       latency: 'Latency',
       network: 'Network'
     },
-    badge: { recommended: 'Recommended', optional: 'Optional', highRisk: 'High risk', experimental: 'Experimental', oneShot: 'One-shot' },
+    badge: { recommended: 'Recommended', optional: 'Optional' },
     apply: 'Apply',
     revert: 'Revert',
     running: 'Working…',
-    confirmEdgeTitle: 'Remove Microsoft Edge — High risk',
+    confirmEdgeTitle: 'Remove Microsoft Edge',
     confirmEdgeMessage:
-      'Fully uninstalling Edge can break WebView2 and Windows components. Heart will only apply a guarded experimental limitation (disable startup boost), not a hard uninstall. Continue?'
+      'Fully uninstalling Edge can break WebView2 and Windows components. Heart will only apply a guarded limitation (disable startup boost), not a hard uninstall. Continue?'
   },
   tweaks: {
     'disable-telemetry': {
@@ -68,7 +68,7 @@
     },
     'remove-edge': {
       title: 'Remove Microsoft Edge',
-      desc: 'HIGH RISK — guarded experimental: does not fully uninstall Edge (breaks WebView2). Disables startup boost only.'
+      desc: 'Guarded optional tweak: does not fully uninstall Edge (avoids breaking WebView2). Disables startup boost only.'
     },
     'tcp-nagle-off': {
       title: 'TCP/IP Optimization (Nagle Off)',

@@ -1,4 +1,4 @@
-﻿import type { Dict } from './en'
+import type { Dict } from './en'
 
 export const fr: Dict = {
   appName: 'Heart',
@@ -33,17 +33,14 @@ export const fr: Dict = {
     },
     badge: {
       recommended: 'Recommandé',
-      optional: 'Optionnel',
-      highRisk: 'Haut risque',
-      experimental: 'Expérimental',
-      oneShot: 'Unique'
+      optional: 'Optionnel'
     },
     apply: 'Appliquer',
     revert: 'Annuler',
     running: 'En cours…',
-    confirmEdgeTitle: 'Supprimer Microsoft Edge — Haut risque',
+    confirmEdgeTitle: 'Supprimer Microsoft Edge',
     confirmEdgeMessage:
-      "Désinstaller Edge peut casser WebView2 et des composants Windows. Heart n'appliquera qu'une limitation expérimentale gardée (désactiver le startup boost), pas une désinstallation forcée. Continuer ?"
+      "Désinstaller Edge peut casser WebView2 et des composants Windows. Heart n'appliquera qu'une limitation gardée (désactiver le startup boost), pas une désinstallation forcée. Continuer ?"
   },
   tweaks: {
     'disable-telemetry': {
@@ -76,7 +73,7 @@ export const fr: Dict = {
     },
     'remove-edge': {
       title: 'Supprimer Microsoft Edge',
-      desc: 'HAUT RISQUE — expérimental gardé : n’éradique pas Edge (casse WebView2). Désactive seulement le startup boost.'
+      desc: 'Tweak optionnel gardé : n’éradique pas Edge (évite de casser WebView2). Désactive seulement le startup boost.'
     },
     'tcp-nagle-off': {
       title: 'Optimisation TCP/IP (Nagle Off)',

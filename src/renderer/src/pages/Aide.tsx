@@ -1,4 +1,4 @@
-﻿import { useI18n } from '../i18n'
+import { useI18n } from '../i18n'
 
 export function Aide() {
   const { t } = useI18n()
@@ -9,7 +9,6 @@ export function Aide() {
           <h1>{t.aide.title}</h1>
           <p>{t.aide.subtitle}</p>
         </div>
-        <button type="button" className="upgrade-btn">✦ Upgrade</button>
       </div>
       <div className="fix-grid">
         {t.aide.cards.map((card) => (

@@ -149,7 +149,6 @@ export function Optimisation() {
           <h1>{t.optimisation.title}</h1>
           <p>{t.optimisation.subtitle}</p>
         </div>
-        <button type="button" className="upgrade-btn">Upgrade</button>
       </div>
 
       <div className="filter-row">
@@ -218,9 +217,6 @@ export function Optimisation() {
                   <span className={`badge ${m.recommended ? 'rec' : 'opt'}`}>
                     {m.recommended ? t.optimisation.badge.recommended : t.optimisation.badge.optional}
                   </span>
-                  {st?.highRisk && <span className="badge risk">{t.optimisation.badge.highRisk}</span>}
-                  {st?.experimental && <span className="badge exp">{t.optimisation.badge.experimental}</span>}
-                  {st?.oneShot && <span className="badge opt">{t.optimisation.badge.oneShot}</span>}
                 </div>
                 {st?.oneShot && !on ? (
                   <button
