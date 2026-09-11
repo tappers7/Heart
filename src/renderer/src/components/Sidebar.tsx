@@ -1,9 +1,10 @@
-﻿import { useI18n } from '../i18n'
-import heartLogo from '../assets/heart.png'
+import type { ReactElement } from 'react'
+import { useI18n } from '../i18n'
+import animationLogo from '../assets/animation.png'
 
 export type PageId = 'home' | 'optimisation' | 'nettoyage' | 'aide'
 
-const icons: Record<PageId, JSX.Element> = {
+const icons: Record<PageId, ReactElement> = {
   home: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
       <path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9.5z" />
@@ -38,9 +39,8 @@ export function Sidebar({ page, onNavigate }: { page: PageId; onNavigate: (p: Pa
   ]
   return (
     <aside className="sidebar">
-      <div className="sidebar-logo">
-        <img src={heartLogo} alt="Heart" />
-        <span>Heart</span>
+      <div className="sidebar-brand">
+        <img src={animationLogo} alt="Heart" />
       </div>
       {items.map((item) => (
         <button

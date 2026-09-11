@@ -35,7 +35,27 @@ export const en = {
     running: 'Working…',
     confirmEdgeTitle: 'Remove Microsoft Edge',
     confirmEdgeMessage:
-      'Fully uninstalling Edge can break WebView2 and Windows components. Heart will only apply a guarded limitation (disable startup boost), not a hard uninstall. Continue?'
+      'Fully uninstalling Edge can break WebView2 and Windows components. Heart will only apply a guarded limitation (disable startup boost), not a hard uninstall. Continue?',
+    detecting: 'Detecting tweak states…',
+    success: 'Done',
+    failed: 'Something went wrong'
+  },
+  common: {
+    confirm: 'Confirm',
+    cancel: 'Cancel'
+  },
+  bloatware: {
+    title: 'Remove Bloatware (UWP)',
+    subtitle: 'Select preinstalled Store apps to uninstall. Conservative defaults are checked. System-critical apps are never listed.',
+    loading: 'Scanning installed apps…',
+    selectAll: 'Select all',
+    selectNone: 'Select none',
+    confirm: 'Uninstall selected',
+    progress: 'Uninstalling…',
+    selectedCount: '{n} selected',
+    installed: 'Installed',
+    notInstalled: 'Not installed',
+    noneSelected: 'Select at least one app.'
   },
   tweaks: {
     'disable-telemetry': {

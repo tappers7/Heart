@@ -1,4 +1,4 @@
-﻿import { execFile, spawn } from 'child_process'
+import { execFile } from 'child_process'
 import { promisify } from 'util'
 
 const execFileAsync = promisify(execFile)
@@ -32,35 +32,89 @@ export type TweakState = {
   experimental?: boolean
 }
 
-async function runPs(script: string, elevated = false): Promise<{ ok: boolean; stdout: string; stderr: string }> {
+const BLOATWARE_CANDIDATES = [
+  'Microsoft.BingNews',
+  'Microsoft.BingWeather',
+  'Microsoft.GetHelp',
+  'Microsoft.Getstarted',
+  'Microsoft.MicrosoftOfficeHub',
+  'Microsoft.MicrosoftSolitaireCollection',
+  'Microsoft.People',
+  'Microsoft.WindowsFeedbackHub',
+  'Microsoft.Xbox.TCUI',
+  'Microsoft.XboxApp',
+  'Microsoft.XboxGameOverlay',
+  'Microsoft.XboxGamingOverlay',
+  'Microsoft.XboxIdentityProvider',
+  'Microsoft.XboxSpeechToTextOverlay',
+  'Microsoft.YourPhone',
+  'Microsoft.ZuneMusic',
+  'Microsoft.ZuneVideo',
+  'Microsoft.GamingApp',
+  'Clipchamp.Clipchamp',
+  'Microsoft.Todos',
+  'Microsoft.PowerAutomateDesktop',
+  'Microsoft.BingSearch',
+  'Microsoft.Copilot',
+  'MicrosoftCorporationII.QuickAssist',
+  'MicrosoftTeams'
+] as const
+
+export type BloatwareApp = {
+  name: string
+  packageFullName: string
+  installed: boolean
+  selectedByDefault: boolean
+}
+
+/** Strip PowerShell CLIXML / encoding noise into a short user-facing message. */
+export function cleanPsError(raw: string): string {
+  if (!raw) return ''
+  let t = raw
+  if (t.includes('#< CLIXML') || t.includes('<Objs') || t.includes('<S S="Error">')) {
+    const errors: string[] = []
+    const re = /<S S="Error">([^<]*)<\/S>/g
+    let m: RegExpExecArray | null
+    while ((m = re.exec(t)) !== null) {
+      const line = m[1]
+        .replace(/_x([0-9A-Fa-f]{4})_/g, (_, h) => String.fromCharCode(parseInt(h, 16)))
+        .replace(/\r/g, '')
+        .trim()
+      if (line) errors.push(line)
+    }
+    t = errors.join(' ').trim() || 'Operation failed'
+  }
+  t = t.replace(/\uFFFD/g, '').replace(/\s+/g, ' ').trim()
+  if (/annul|cancel(led)? by the user|operation was cancelled|Operation was cancelled/i.test(t)) {
+    return 'Operation cancelled. Administrator permission is required.'
+  }
+  if (/access.*(denied|refus)/i.test(t)) {
+    return 'Access denied. Restart Heart as Administrator.'
+  }
+  if (t.length > 240) t = t.slice(0, 240) + '…'
+  return t
+}
+
+/**
+ * Run PowerShell hidden in-process. App must already be elevated at launch —
+ * never use Start-Process -Verb RunAs (that pops UAC mid-tweak).
+ */
+async function runPs(script: string, _elevated = false): Promise<{ ok: boolean; stdout: string; stderr: string }> {
   const encoded = Buffer.from(script, 'utf16le').toString('base64')
   try {
-    if (elevated) {
-      // Launch elevated PowerShell via Start-Process -Verb RunAs and wait
-      const elevScript = `
-$p = Start-Process -FilePath powershell.exe -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-EncodedCommand','${encoded}') -Verb RunAs -Wait -PassThru -WindowStyle Hidden
-exit $p.ExitCode
-`
-      const elevEncoded = Buffer.from(elevScript, 'utf16le').toString('base64')
-      const { stdout, stderr } = await execFileAsync(
-        'powershell.exe',
-        ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', elevEncoded],
-        { windowsHide: true, maxBuffer: 10 * 1024 * 1024, timeout: 120000 }
-      )
-      return { ok: true, stdout: stdout || '', stderr: stderr || '' }
-    }
     const { stdout, stderr } = await execFileAsync(
       'powershell.exe',
-      ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', encoded],
-      { windowsHide: true, maxBuffer: 10 * 1024 * 1024, timeout: 90000 }
+      ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-EncodedCommand', encoded],
+      { windowsHide: true, maxBuffer: 10 * 1024 * 1024, timeout: 120000 }
     )
-    return { ok: true, stdout: stdout || '', stderr: stderr || '' }
+    return { ok: true, stdout: stdout || '', stderr: cleanPsError(stderr || '') }
   } catch (e: unknown) {
     const err = e as { stdout?: string; stderr?: string; message?: string }
+    const stderr = cleanPsError(err.stderr || err.message || String(e))
     return {
       ok: false,
       stdout: err.stdout || '',
-      stderr: err.stderr || err.message || String(e)
+      stderr: stderr || 'Command failed'
     }
   }
 }
@@ -272,42 +326,91 @@ Write-Output 'OK'
 }
 
 async function applyRemoveBloatware() {
-  // Conservative UWP list only
-  return runPs(`
-$apps = @(
-  'Microsoft.BingNews',
-  'Microsoft.BingWeather',
-  'Microsoft.GetHelp',
-  'Microsoft.Getstarted',
-  'Microsoft.MicrosoftOfficeHub',
-  'Microsoft.MicrosoftSolitaireCollection',
-  'Microsoft.People',
-  'Microsoft.WindowsFeedbackHub',
-  'Microsoft.Xbox.TCUI',
-  'Microsoft.XboxApp',
-  'Microsoft.XboxGameOverlay',
-  'Microsoft.XboxGamingOverlay',
-  'Microsoft.XboxIdentityProvider',
-  'Microsoft.XboxSpeechToTextOverlay',
-  'Microsoft.YourPhone',
-  'Microsoft.ZuneMusic',
-  'Microsoft.ZuneVideo',
-  'Microsoft.GamingApp',
-  'Clipchamp.Clipchamp',
-  'Microsoft.Todos',
-  'Microsoft.PowerAutomateDesktop'
-)
-$removed = @()
-foreach ($a in $apps) {
-  Get-AppxPackage -Name $a -AllUsers -ErrorAction SilentlyContinue | Remove-AppxPackage -ErrorAction SilentlyContinue
-  Get-AppxPackage -Name $a -ErrorAction SilentlyContinue | Remove-AppxPackage -ErrorAction SilentlyContinue
-  Get-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -like $a } | Remove-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue | Out-Null
-  $removed += $a
-}
-Write-Output ("Removed attempted: " + ($removed -join ', '))
-`, true)
+  // Default conservative list — UI picker calls removeBloatwareApps with checked names
+  return removeBloatwareApps([...BLOATWARE_CANDIDATES]).then((r) => ({
+    ok: r.ok,
+    stdout: r.message,
+    stderr: r.ok ? '' : r.message
+  }))
 }
 
+export async function listBloatwareApps(): Promise<BloatwareApp[]> {
+  const r = await runPs(`
+$names = @(${BLOATWARE_CANDIDATES.map((n) => "'" + n + "'").join(',')})
+$out = @()
+foreach ($n in $names) {
+  $pkgs = @(Get-AppxPackage -Name $n -ErrorAction SilentlyContinue)
+  if ($pkgs.Count -eq 0) {
+    $out += [pscustomobject]@{ name = $n; packageFullName = ''; installed = $false }
+  } else {
+    foreach ($p in $pkgs) {
+      $out += [pscustomobject]@{ name = $n; packageFullName = $p.PackageFullName; installed = $true }
+    }
+  }
+}
+$out | ConvertTo-Json -Compress
+`)
+  let parsed: { name: string; packageFullName: string; installed: boolean | string }[] = []
+  try {
+    const raw = (r.stdout || '').trim()
+    if (raw) {
+      const j = JSON.parse(raw)
+      parsed = Array.isArray(j) ? j : [j]
+    }
+  } catch {
+    parsed = []
+  }
+  const byName = new Map<string, BloatwareApp>()
+  for (const n of BLOATWARE_CANDIDATES) {
+    byName.set(n, { name: n, packageFullName: '', installed: false, selectedByDefault: true })
+  }
+  for (const row of parsed) {
+    const installed = row.installed === true || row.installed === 'True' || row.installed === 'true'
+    const existing = byName.get(row.name)
+    if (existing) {
+      existing.installed = existing.installed || installed
+      if (installed && row.packageFullName) existing.packageFullName = row.packageFullName
+    }
+  }
+  return [...byName.values()]
+}
+
+export async function removeBloatwareApps(names: string[]): Promise<{ ok: boolean; message: string; removed: string[] }> {
+  const safe = names.filter((n) => (BLOATWARE_CANDIDATES as readonly string[]).includes(n))
+  if (safe.length === 0) return { ok: true, message: 'No apps selected.', removed: [] }
+  const list = safe.map((n) => "'" + n.replace(/'/g, "''") + "'").join(',')
+  const r = await runPs(`
+$apps = @(${list})
+$removed = @()
+foreach ($a in $apps) {
+  $had = $false
+  $pkgs = @(Get-AppxPackage -Name $a -ErrorAction SilentlyContinue)
+  foreach ($p in $pkgs) {
+    Remove-AppxPackage -Package $p.PackageFullName -ErrorAction SilentlyContinue
+    $had = $true
+  }
+  Get-AppxPackage -Name $a -AllUsers -ErrorAction SilentlyContinue | ForEach-Object {
+    Remove-AppxPackage -Package $_.PackageFullName -AllUsers -ErrorAction SilentlyContinue
+    $had = $true
+  }
+  Get-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -eq $a } | ForEach-Object {
+    Remove-AppxProvisionedPackage -Online -PackageName $_.PackageName -ErrorAction SilentlyContinue | Out-Null
+    $had = $true
+  }
+  if ($had) { $removed += $a }
+}
+Write-Output ("REMOVED:" + ($removed -join ','))
+`)
+  const stdout = (r.stdout || '').trim()
+  const m = stdout.match(/REMOVED:(.*)$/m)
+  const removed = m && m[1] ? m[1].split(',').filter(Boolean) : []
+  if (!r.ok) return { ok: false, message: r.stderr || 'Uninstall failed', removed }
+  return {
+    ok: true,
+    message: removed.length ? `Removed: ${removed.join(', ')}` : 'No matching packages found to remove.',
+    removed
+  }
+}
 async function applyClassicContextMenu() {
   return runPs(`
 New-Item -Path 'HKCU:\\Software\\Classes\\CLSID\\{86ca1aa0-34aa-4e8b-a509-50c741a7c5f8}\\InprocServer32' -Force | Out-Null
@@ -598,8 +701,10 @@ export async function applyTweak(id: string): Promise<{ ok: boolean; message: st
       case 'remove-home-quickaccess': r = await applyHomeQuickAccess(); break
       default: return { ok: false, message: 'Unknown tweak' }
     }
-    const msg = (r.stdout || r.stderr || '').trim() || (r.ok ? 'OK' : 'Failed')
-    return { ok: r.ok || msg.includes('OK') || msg.includes('LIMITED'), message: msg }
+    let msg = (r.stdout || '').trim()
+    if (!r.ok || (!msg && r.stderr)) msg = r.stderr || msg || 'Failed'
+    msg = cleanPsError(msg) || (r.ok ? 'OK' : 'Failed')
+    return { ok: r.ok || /\bOK\b|LIMITED/i.test(msg), message: msg }
   } catch (e) {
     return { ok: false, message: String(e) }
   }
@@ -626,8 +731,10 @@ export async function revertTweak(id: string): Promise<{ ok: boolean; message: s
       case 'remove-home-quickaccess': r = await revertHomeQuickAccess(); break
       default: return { ok: false, message: 'Unknown tweak' }
     }
-    const msg = (r.stdout || r.stderr || '').trim() || (r.ok ? 'OK' : 'Failed')
-    return { ok: r.ok || msg.includes('OK'), message: msg }
+    let msg = (r.stdout || '').trim()
+    if (!r.ok || (!msg && r.stderr)) msg = r.stderr || msg || 'Failed'
+    msg = cleanPsError(msg) || (r.ok ? 'OK' : 'Failed')
+    return { ok: r.ok || /\bOK\b/i.test(msg), message: msg }
   } catch (e) {
     return { ok: false, message: String(e) }
   }

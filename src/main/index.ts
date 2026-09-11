@@ -1,8 +1,18 @@
-﻿import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
+import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from './utils'
-import { getTweakStates, applyTweak, revertTweak, TWEAK_IDS } from './tweaks'
+import {
+  getTweakStates,
+  applyTweak,
+  revertTweak,
+  TWEAK_IDS,
+  listBloatwareApps,
+  removeBloatwareApps
+} from './tweaks'
 import { runCleanup } from './cleaner'
+import { isProcessElevated, relaunchAsAdminAndQuit, restoreElevatedEnv } from './elevation'
+
+restoreElevatedEnv()
 
 let mainWindow: BrowserWindow | null = null
 
@@ -42,13 +52,18 @@ function createWindow(): void {
 }
 
 app.whenReady().then(() => {
+  // Elevate once at launch so tweaks never trigger mid-session UAC
+  if (process.platform === 'win32' && !isProcessElevated()) {
+    relaunchAsAdminAndQuit()
+    return
+  }
+
   electronApp.setAppUserModelId('com.heart.app')
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  // Window controls
   ipcMain.on('window:minimize', () => mainWindow?.minimize())
   ipcMain.on('window:maximize', () => {
     if (mainWindow?.isMaximized()) mainWindow.unmaximize()
@@ -57,31 +72,17 @@ app.whenReady().then(() => {
   ipcMain.on('window:close', () => mainWindow?.close())
   ipcMain.handle('window:isMaximized', () => mainWindow?.isMaximized() ?? false)
 
-  // Locale
   ipcMain.handle('app:getLocale', () => app.getLocale())
+  ipcMain.handle('app:isElevated', () => isProcessElevated())
 
-  // Tweaks
   ipcMain.handle('tweaks:list', () => TWEAK_IDS)
   ipcMain.handle('tweaks:getStates', async () => getTweakStates())
   ipcMain.handle('tweaks:apply', async (_e, id: string) => applyTweak(id))
   ipcMain.handle('tweaks:revert', async (_e, id: string) => revertTweak(id))
+  ipcMain.handle('tweaks:listBloatware', async () => listBloatwareApps())
+  ipcMain.handle('tweaks:removeBloatware', async (_e, names: string[]) => removeBloatwareApps(names))
 
-  // Cleanup
   ipcMain.handle('cleaner:run', async () => runCleanup())
-
-  // Confirm dialog (Edge removal etc.)
-  ipcMain.handle('dialog:confirm', async (_e, opts: { title: string; message: string }) => {
-    if (!mainWindow) return false
-    const result = await dialog.showMessageBox(mainWindow, {
-      type: 'warning',
-      buttons: ['Cancel', 'Confirm'],
-      defaultId: 0,
-      cancelId: 0,
-      title: opts.title,
-      message: opts.message
-    })
-    return result.response === 1
-  })
 
   createWindow()
 

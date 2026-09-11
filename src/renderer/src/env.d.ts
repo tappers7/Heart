@@ -1,4 +1,4 @@
-﻿/// <reference types="vite/client" />
+/// <reference types="vite/client" />
 
 interface ImportMetaEnv {
   readonly DEV: boolean
@@ -16,6 +16,7 @@ declare global {
       close: () => void
       isMaximized: () => Promise<boolean>
       getLocale: () => Promise<string>
+      isElevated: () => Promise<boolean>
       getTweakStates: () => Promise<
         {
           id: string
@@ -28,6 +29,12 @@ declare global {
       >
       applyTweak: (id: string) => Promise<{ ok: boolean; message: string }>
       revertTweak: (id: string) => Promise<{ ok: boolean; message: string }>
+      listBloatware: () => Promise<
+        { name: string; packageFullName: string; installed: boolean; selectedByDefault: boolean }[]
+      >
+      removeBloatware: (
+        names: string[]
+      ) => Promise<{ ok: boolean; message: string; removed: string[] }>
       runCleanup: () => Promise<{
         ok: boolean
         cleared: { path: string; files: number; bytes: number; error?: string }[]
@@ -35,7 +42,6 @@ declare global {
         cleanmgrStarted: boolean
         summary: string
       }>
-      confirm: (opts: { title: string; message: string }) => Promise<boolean>
     }
   }
 }

@@ -40,7 +40,27 @@ export const fr: Dict = {
     running: 'En cours…',
     confirmEdgeTitle: 'Supprimer Microsoft Edge',
     confirmEdgeMessage:
-      "Désinstaller Edge peut casser WebView2 et des composants Windows. Heart n'appliquera qu'une limitation gardée (désactiver le startup boost), pas une désinstallation forcée. Continuer ?"
+      "Désinstaller Edge peut casser WebView2 et des composants Windows. Heart n'appliquera qu'une limitation gardée (désactiver le startup boost), pas une désinstallation forcée. Continuer ?",
+    detecting: 'Détection des tweaks…',
+    success: 'Terminé',
+    failed: "Une erreur s'est produite"
+  },
+  common: {
+    confirm: 'Confirmer',
+    cancel: 'Annuler'
+  },
+  bloatware: {
+    title: 'Supprimer les bloatwares (UWP)',
+    subtitle: 'Sélectionnez les apps Store préinstallées à désinstaller. Sélection conservative par défaut. Les apps critiques ne sont jamais listées.',
+    loading: 'Analyse des apps installées…',
+    selectAll: 'Tout sélectionner',
+    selectNone: 'Tout désélectionner',
+    confirm: 'Désinstaller la sélection',
+    progress: 'Désinstallation…',
+    selectedCount: '{n} sélectionné(s)',
+    installed: 'Installée',
+    notInstalled: 'Absente',
+    noneSelected: 'Sélectionnez au moins une app.'
   },
   tweaks: {
     'disable-telemetry': {
