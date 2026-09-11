@@ -39,9 +39,11 @@ type State = {
 
 type BloatApp = {
   name: string
+  displayName?: string
   packageFullName: string
   installed: boolean
   selectedByDefault: boolean
+  iconDataUrl?: string
 }
 
 const CACHE_KEY = 'heart-tweak-states-v1'
@@ -74,6 +76,26 @@ function friendlyMessage(msg: string, fallbackOk: string, fallbackErr: string, o
   return m.length > 220 ? m.slice(0, 220) + '…' : m
 }
 
+function BloatIcon({ app }: { app: BloatApp }) {
+  const [broken, setBroken] = useState(false)
+  if (!app.iconDataUrl || broken) {
+    const letter = (app.displayName || app.name || '?').trim().charAt(0).toUpperCase()
+    return (
+      <span className="bloat-icon fallback" aria-hidden>
+        {letter || '?'}
+      </span>
+    )
+  }
+  return (
+    <img
+      className="bloat-icon"
+      src={app.iconDataUrl}
+      alt=""
+      onError={() => setBroken(true)}
+    />
+  )
+}
+
 export function Optimisation() {
   const { t } = useI18n()
   const [filter, setFilter] = useState<Filter>('all')
@@ -89,6 +111,7 @@ export function Optimisation() {
   const [bloatSelected, setBloatSelected] = useState<Set<string>>(new Set())
   const [bloatLoading, setBloatLoading] = useState(false)
   const [bloatProgress, setBloatProgress] = useState<string | null>(null)
+  const [bloatFilter, setBloatFilter] = useState('')
 
   const load = useCallback(async (opts?: { silent?: boolean }) => {
     if (!opts?.silent && states.length === 0) setLoading(true)
@@ -138,17 +161,12 @@ export function Optimisation() {
     setBloatOpen(true)
     setBloatLoading(true)
     setBloatProgress(null)
+    setBloatFilter('')
+    setBloatSelected(new Set()) // nothing checked by default — user must opt-in
     try {
       const apps = await window.heart.listBloatware()
       setBloatApps(apps)
-      const sel = new Set(
-        apps.filter((a) => a.installed && a.selectedByDefault).map((a) => a.name)
-      )
-      // If none installed yet, still pre-check defaults for installed-or-not display
-      if (sel.size === 0) {
-        apps.filter((a) => a.selectedByDefault).forEach((a) => sel.add(a.name))
-      }
-      setBloatSelected(sel)
+      setBloatSelected(new Set())
     } catch (e) {
       setToast({ msg: String(e), ok: false })
       setBloatOpen(false)
@@ -250,6 +268,14 @@ export function Optimisation() {
 
   const installedBloat = bloatApps.filter((a) => a.installed)
   const listedApps = installedBloat.length > 0 ? installedBloat : bloatApps
+  const bloatQ = bloatFilter.trim().toLowerCase()
+  const filteredBloat = !bloatQ
+    ? listedApps
+    : listedApps.filter((a) => {
+        const dn = (a.displayName || '').toLowerCase()
+        const n = (a.name || '').toLowerCase()
+        return dn.includes(bloatQ) || n.includes(bloatQ)
+      })
 
   return (
     <div>
@@ -420,12 +446,20 @@ export function Optimisation() {
         }
       >
         <p className="modal-text">{t.bloatware.subtitle}</p>
+        <input
+          className="bloat-search"
+          type="search"
+          placeholder={t.bloatware.search}
+          value={bloatFilter}
+          disabled={bloatLoading || !!bloatProgress}
+          onChange={(e) => setBloatFilter(e.target.value)}
+        />
         <div className="bloat-toolbar">
           <button
             type="button"
             className="btn"
             disabled={bloatLoading || !!bloatProgress}
-            onClick={() => setBloatSelected(new Set(listedApps.map((a) => a.name)))}
+            onClick={() => setBloatSelected(new Set(filteredBloat.map((a) => a.name)))}
           >
             {t.bloatware.selectAll}
           </button>
@@ -445,27 +479,37 @@ export function Optimisation() {
           <div className="bloat-loading">{t.bloatware.loading}</div>
         ) : (
           <div className="bloat-list">
-            {listedApps.map((app) => (
-              <label key={app.name} className={`bloat-item${app.installed ? '' : ' muted'}`}>
-                <input
-                  type="checkbox"
-                  checked={bloatSelected.has(app.name)}
-                  disabled={!!bloatProgress}
-                  onChange={(e) => {
-                    setBloatSelected((prev) => {
-                      const next = new Set(prev)
-                      if (e.target.checked) next.add(app.name)
-                      else next.delete(app.name)
-                      return next
-                    })
-                  }}
-                />
-                <span className="bloat-name">{app.name}</span>
-                <span className={`badge ${app.installed ? 'opt' : ''}`}>
-                  {app.installed ? t.bloatware.installed : t.bloatware.notInstalled}
-                </span>
-              </label>
-            ))}
+            {filteredBloat.length === 0 ? (
+              <div className="bloat-loading">{t.bloatware.empty}</div>
+            ) : (
+              filteredBloat.map((app) => (
+                <label key={app.name} className={`bloat-item${app.installed ? '' : ' muted'}`}>
+                  <input
+                    type="checkbox"
+                    checked={bloatSelected.has(app.name)}
+                    disabled={!!bloatProgress}
+                    onChange={(e) => {
+                      setBloatSelected((prev) => {
+                        const next = new Set(prev)
+                        if (e.target.checked) next.add(app.name)
+                        else next.delete(app.name)
+                        return next
+                      })
+                    }}
+                  />
+                  <BloatIcon app={app} />
+                  <span className="bloat-meta">
+                    <span className="bloat-name">{app.displayName || app.name}</span>
+                    {app.displayName && app.displayName !== app.name ? (
+                      <span className="bloat-pkg">{app.name}</span>
+                    ) : null}
+                  </span>
+                  <span className={`badge ${app.installed ? 'opt' : ''}`}>
+                    {app.installed ? t.bloatware.installed : t.bloatware.notInstalled}
+                  </span>
+                </label>
+              ))
+            )}
           </div>
         )}
         {bloatProgress && <p className="modal-text bloat-progress">{bloatProgress}</p>}

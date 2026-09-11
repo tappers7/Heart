@@ -11,7 +11,14 @@ export type HeartAPI = {
   applyTweak: (id: string) => Promise<{ ok: boolean; message: string }>
   revertTweak: (id: string) => Promise<{ ok: boolean; message: string }>
   listBloatware: () => Promise<
-    { name: string; packageFullName: string; installed: boolean; selectedByDefault: boolean }[]
+    {
+      name: string
+      displayName: string
+      packageFullName: string
+      installed: boolean
+      selectedByDefault: boolean
+      iconDataUrl?: string
+    }[]
   >
   removeBloatware: (names: string[]) => Promise<{ ok: boolean; message: string; removed: string[] }>
   runCleanup: () => Promise<unknown>

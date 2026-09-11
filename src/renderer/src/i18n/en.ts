@@ -46,8 +46,10 @@ export const en = {
   },
   bloatware: {
     title: 'Remove Bloatware (UWP)',
-    subtitle: 'Select preinstalled Store apps to uninstall. Conservative defaults are checked. System-critical apps are never listed.',
+    subtitle: 'Select apps to uninstall. Nothing is checked by default — opt in to what you want removed. System-critical apps are never listed.',
     loading: 'Scanning installed apps…',
+    search: 'Search apps…',
+    empty: 'No matching apps.',
     selectAll: 'Select all',
     selectNone: 'Select none',
     confirm: 'Uninstall selected',
@@ -64,7 +66,7 @@ export const en = {
     },
     'remove-bloatware': {
       title: 'Remove Bloatware (UWP)',
-      desc: 'Uninstalls a conservative list of unused preinstalled Store apps. One-shot.'
+      desc: 'Pick removable Store / UWP apps to uninstall (opt-in). One-shot.'
     },
     'classic-context-menu': {
       title: 'Classic Right-Click Menu',

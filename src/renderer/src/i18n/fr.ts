@@ -51,8 +51,10 @@ export const fr: Dict = {
   },
   bloatware: {
     title: 'Supprimer les bloatwares (UWP)',
-    subtitle: 'Sélectionnez les apps Store préinstallées à désinstaller. Sélection conservative par défaut. Les apps critiques ne sont jamais listées.',
+    subtitle: "Sélectionnez les apps à désinstaller. Rien n'est coché par défaut — choisissez ce que vous voulez retirer. Les apps critiques ne sont jamais listées.",
     loading: 'Analyse des apps installées…',
+    search: 'Rechercher des apps…',
+    empty: 'Aucune app correspondante',
     selectAll: 'Tout sélectionner',
     selectNone: 'Tout désélectionner',
     confirm: 'Désinstaller la sélection',
@@ -69,7 +71,7 @@ export const fr: Dict = {
     },
     'remove-bloatware': {
       title: 'Supprimer les bloatwares (UWP)',
-      desc: 'Désinstalle les apps préinstallées inutiles (liste conservative). Action unique.'
+      desc: 'Choisissez les apps Store / UWP à désinstaller (opt-in). Action unique.'
     },
     'classic-context-menu': {
       title: 'Menu contextuel classique',

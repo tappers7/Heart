@@ -570,7 +570,10 @@ input { font-family: inherit; }
   padding: 40px;
 }
 .home-logo {
-  width: 160px; height: 160px;
+  width: auto;
+  max-width: 65%;
+  height: auto;
+  max-height: min(240px, 28vh);
   object-fit: contain;
   filter: drop-shadow(0 0 36px var(--accent-glow));
   animation: homePulse 5s ease-in-out infinite;
@@ -805,6 +808,12 @@ input { font-family: inherit; }
 }
 .bloat-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; }
 .bloat-count { font-size: 12px; color: var(--muted); margin-left: auto; }
+.bloat-search {
+  width: 100%; margin-bottom: 10px; padding: 9px 12px; border-radius: 10px;
+  border: 1px solid var(--glass-border-soft); background: rgba(0,0,0,0.25); color: var(--text);
+  font-size: 13px; outline: none;
+}
+.bloat-search:focus { border-color: rgba(230, 40, 50, 0.45); }
 .bloat-list {
   display: flex; flex-direction: column; gap: 6px; max-height: 360px; overflow: auto; padding-right: 4px;
 }
@@ -813,8 +822,18 @@ input { font-family: inherit; }
   background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border-soft); cursor: pointer;
 }
 .bloat-item.muted { opacity: 0.55; }
-.bloat-item input { accent-color: var(--accent); width: 16px; height: 16px; }
-.bloat-name { flex: 1; font-size: 12.5px; font-weight: 560; word-break: break-all; }
+.bloat-item input { accent-color: var(--accent); width: 16px; height: 16px; flex-shrink: 0; }
+.bloat-icon {
+  width: 28px; height: 28px; border-radius: 6px; object-fit: contain; flex-shrink: 0;
+  background: rgba(255,255,255,0.06); border: 1px solid var(--glass-border-soft);
+}
+.bloat-icon.fallback {
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: var(--muted);
+}
+.bloat-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.bloat-name { font-size: 12.5px; font-weight: 560; word-break: break-word; }
+.bloat-pkg { font-size: 10.5px; color: var(--muted); word-break: break-all; opacity: 0.85; }
 .bloat-loading, .bloat-progress { font-size: 13px; color: var(--muted); padding: 18px 0; text-align: center; }
 .skeleton-card { min-height: 148px; pointer-events: none; }
 .skel-line {

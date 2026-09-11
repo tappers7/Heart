@@ -32,9 +32,12 @@ export type TweakState = {
   experimental?: boolean
 }
 
+/** Known consumer bloat — always offered when installed. */
 const BLOATWARE_CANDIDATES = [
   'Microsoft.BingNews',
   'Microsoft.BingWeather',
+  'Microsoft.BingSports',
+  'Microsoft.BingFinance',
   'Microsoft.GetHelp',
   'Microsoft.Getstarted',
   'Microsoft.MicrosoftOfficeHub',
@@ -45,7 +48,6 @@ const BLOATWARE_CANDIDATES = [
   'Microsoft.XboxApp',
   'Microsoft.XboxGameOverlay',
   'Microsoft.XboxGamingOverlay',
-  'Microsoft.XboxIdentityProvider',
   'Microsoft.XboxSpeechToTextOverlay',
   'Microsoft.YourPhone',
   'Microsoft.ZuneMusic',
@@ -57,14 +59,120 @@ const BLOATWARE_CANDIDATES = [
   'Microsoft.BingSearch',
   'Microsoft.Copilot',
   'MicrosoftCorporationII.QuickAssist',
-  'MicrosoftTeams'
+  'MicrosoftTeams',
+  'MSTeams',
+  'Microsoft.SkypeApp',
+  'Microsoft.MicrosoftStickyNotes',
+  'Microsoft.OneConnect',
+  'Microsoft.MixedReality.Portal',
+  'Microsoft.WindowsMaps',
+  'Microsoft.WindowsSoundRecorder',
+  'Microsoft.WindowsAlarms',
+  'Microsoft.Messaging',
+  'Microsoft.Office.OneNote',
+  'Microsoft.549981C3F5F10',
+  'Microsoft.WindowsCommunicationsApps',
+  'microsoft.windowscommunicationsapps',
+  'Microsoft.OutlookForWindows',
+  'Microsoft.LinkedInforWindows',
+  'Microsoft.Microsoft3DViewer',
+  'Microsoft.Print3D',
+  'Microsoft.Wallet',
+  'Microsoft.BingTranslator',
+  'Microsoft.RemoteDesktop',
+  'Microsoft.NetworkSpeedTest',
+  'Microsoft.Office.Sway',
+  'Microsoft.Whiteboard',
+  'MicrosoftCorporationII.MicrosoftFamily',
+  'Microsoft.Windows.DevHome',
+  'Microsoft.CrossDevice',
+  'MicrosoftWindows.CrossDevice',
+  'Microsoft.StartExperiencesApp',
+  'Disney.37853FC22B2CE',
+  'SpotifyAB.SpotifyMusic',
+  'Amazon.com.Amazon',
+  'Facebook.Facebook',
+  'Netflix.Netflix',
+  'king.com.CandyCrushSaga',
+  'king.com.CandyCrushSodaSaga',
+  'king.com.BubbleWitch3Saga',
+  'DolbyLaboratories.DolbyAccess',
+  'BytedancePte.Ltd.TikTok',
+  'AdobeSystemsIncorporated.AdobePhotoshopExpress'
 ] as const
+
+/** Critical / framework packages — never listed or removable via Heart. */
+const BLOATWARE_PROTECTED_PREFIXES = [
+  'Microsoft.WindowsStore',
+  'Microsoft.StorePurchaseApp',
+  'Microsoft.DesktopAppInstaller',
+  'Microsoft.WindowsCalculator',
+  'Microsoft.Windows.Photos',
+  'Microsoft.WindowsCamera',
+  'Microsoft.WindowsNotepad',
+  'Microsoft.Paint',
+  'Microsoft.ScreenSketch',
+  'Microsoft.WindowsTerminal',
+  'Microsoft.XboxIdentityProvider',
+  'Microsoft.UI.Xaml',
+  'Microsoft.VCLibs',
+  'Microsoft.NET',
+  'Microsoft.WindowsAppRuntime',
+  'Microsoft.WebView2',
+  'Microsoft.Services.Store',
+  'Microsoft.Advertising',
+  'MicrosoftWindows.Client.CBS',
+  'MicrosoftWindows.Client.Core',
+  'Microsoft.LockApp',
+  'Microsoft.AAD.BrokerPlugin',
+  'Microsoft.AccountsControl',
+  'Microsoft.BioEnrollment',
+  'Microsoft.CredDialogHost',
+  'Microsoft.ECApp',
+  'Microsoft.Win32WebViewHost',
+  'Microsoft.MicrosoftEdgeDevToolsClient',
+  'Microsoft.Windows.ShellExperienceHost',
+  'Microsoft.Windows.StartMenuExperienceHost',
+  'Microsoft.Windows.Search',
+  'Microsoft.Windows.CloudExperienceHost',
+  'Microsoft.Windows.ContentDeliveryManager',
+  'Microsoft.Windows.NarratorQuickStart',
+  'Microsoft.Windows.PeopleExperienceHost',
+  'Microsoft.Windows.PinningConfirmationDialog',
+  'Microsoft.Windows.XGpuEjectDialog',
+  'Microsoft.XboxGameCallableUI',
+  'Microsoft.Windows.CapturePicker',
+  'Microsoft.Windows.Apprep.ChxApp',
+  'Microsoft.Windows.AssignedAccessLockApp',
+  'Microsoft.Windows.CallingShellApp',
+  'Microsoft.Windows.ParentalControls',
+  'Microsoft.Windows.SecureAssessmentBrowser',
+  'windows.immersivecontrolpanel',
+  'Windows.ImmersiveControlPanel',
+  'NcsiUwpApp',
+  'Microsoft.SecHealthUI',
+  'Microsoft.MicrosoftEdge',
+  'Microsoft.ApplicationCompatibilityEnhancements'
+] as const
+
+function isProtectedPackage(name: string): boolean {
+  const n = name || ''
+  for (const p of BLOATWARE_PROTECTED_PREFIXES) {
+    if (n === p || n.startsWith(p)) return true
+  }
+  if (/\.NET\.|VCLibs|UI\.Xaml|WindowsAppRuntime|WebView2|DirectX|LanguageExperience|InputApp|PPIProjection/i.test(n)) {
+    return true
+  }
+  return false
+}
 
 export type BloatwareApp = {
   name: string
+  displayName: string
   packageFullName: string
   installed: boolean
   selectedByDefault: boolean
+  iconDataUrl?: string
 }
 
 /** Strip PowerShell CLIXML / encoding noise into a short user-facing message. */
@@ -326,8 +434,28 @@ Write-Output 'OK'
 }
 
 async function applyRemoveBloatware() {
-  // Default conservative list — UI picker calls removeBloatwareApps with checked names
-  return removeBloatwareApps([...BLOATWARE_CANDIDATES]).then((r) => ({
+  // Conservative default when applied without the UI picker
+  const defaults = [
+    'Microsoft.BingNews',
+    'Microsoft.BingWeather',
+    'Microsoft.GetHelp',
+    'Microsoft.Getstarted',
+    'Microsoft.MicrosoftSolitaireCollection',
+    'Microsoft.People',
+    'Microsoft.WindowsFeedbackHub',
+    'Microsoft.YourPhone',
+    'Microsoft.ZuneMusic',
+    'Microsoft.ZuneVideo',
+    'Clipchamp.Clipchamp',
+    'Microsoft.Todos',
+    'Microsoft.PowerAutomateDesktop',
+    'Microsoft.BingSearch',
+    'MicrosoftCorporationII.QuickAssist',
+    'Microsoft.SkypeApp',
+    'Microsoft.Microsoft3DViewer',
+    'Microsoft.MixedReality.Portal'
+  ]
+  return removeBloatwareApps(defaults).then((r) => ({
     ok: r.ok,
     stdout: r.message,
     stderr: r.ok ? '' : r.message
@@ -335,22 +463,123 @@ async function applyRemoveBloatware() {
 }
 
 export async function listBloatwareApps(): Promise<BloatwareApp[]> {
+  const knownJson = JSON.stringify([...BLOATWARE_CANDIDATES])
+  const protectedJson = JSON.stringify([...BLOATWARE_PROTECTED_PREFIXES])
   const r = await runPs(`
-$names = @(${BLOATWARE_CANDIDATES.map((n) => "'" + n + "'").join(',')})
-$out = @()
-foreach ($n in $names) {
-  $pkgs = @(Get-AppxPackage -Name $n -ErrorAction SilentlyContinue)
-  if ($pkgs.Count -eq 0) {
-    $out += [pscustomobject]@{ name = $n; packageFullName = ''; installed = $false }
-  } else {
-    foreach ($p in $pkgs) {
-      $out += [pscustomobject]@{ name = $n; packageFullName = $p.PackageFullName; installed = $true }
+$ErrorActionPreference = 'SilentlyContinue'
+$known = ConvertFrom-Json -InputObject '${knownJson.replace(/'/g, "''")}'
+$protected = ConvertFrom-Json -InputObject '${protectedJson.replace(/'/g, "''")}'
+
+function Test-Protected([string]$name) {
+  foreach ($p in $protected) {
+    if ($name -eq $p -or $name.StartsWith($p)) { return $true }
+  }
+  if ($name -match '\\.NET\\.|VCLibs|UI\\.Xaml|WindowsAppRuntime|WebView2|DirectX|LanguageExperience|InputApp|PPIProjection') { return $true }
+  return $false
+}
+
+function Get-AppIconDataUrl([string]$installLocation) {
+  if (-not $installLocation -or -not (Test-Path -LiteralPath $installLocation)) { return $null }
+  $manifestPath = Join-Path $installLocation 'AppxManifest.xml'
+  if (-not (Test-Path -LiteralPath $manifestPath)) { return $null }
+  try {
+    [xml]$xml = Get-Content -LiteralPath $manifestPath -Encoding UTF8
+    $logoRel = $xml.Package.Properties.Logo
+    if (-not $logoRel) { return $null }
+    $logoRel = ($logoRel -replace '/', '\\')
+    $basePath = [System.IO.Path]::Combine($installLocation, $logoRel)
+    $dir = [System.IO.Path]::GetDirectoryName($basePath)
+    $stem = [System.IO.Path]::GetFileNameWithoutExtension($basePath)
+    $ext = [System.IO.Path]::GetExtension($basePath)
+    $candidates = New-Object System.Collections.Generic.List[string]
+    if (Test-Path -LiteralPath $basePath) { [void]$candidates.Add($basePath) }
+    if ($dir -and (Test-Path -LiteralPath $dir)) {
+      Get-ChildItem -LiteralPath $dir -File -ErrorAction SilentlyContinue | Where-Object {
+        $_.Name -like ($stem + '*') -or
+        $_.Name -like '*Square44x44Logo*' -or
+        $_.Name -like '*Square150x150Logo*' -or
+        $_.Name -like '*StoreLogo*' -or
+        $_.Name -like '*AppList*'
+      } | ForEach-Object { [void]$candidates.Add($_.FullName) }
+    }
+    $img = $candidates | Where-Object { $_ -match '\.(png|jpe?g|gif|webp)$' } | Select-Object -First 1
+    if (-not $img) { $img = $candidates | Select-Object -First 1 }
+    if (-not $img -or -not (Test-Path -LiteralPath $img)) { return $null }
+    $bytes = [System.IO.File]::ReadAllBytes($img)
+    if ($bytes.Length -lt 32 -or $bytes.Length -gt 250000) { return $null }
+    $ext2 = [System.IO.Path]::GetExtension($img).ToLowerInvariant()
+    $mime = switch ($ext2) {
+      '.jpg' { 'image/jpeg' }
+      '.jpeg' { 'image/jpeg' }
+      '.gif' { 'image/gif' }
+      '.webp' { 'image/webp' }
+      default { 'image/png' }
+    }
+    return ('data:' + $mime + ';base64,' + [Convert]::ToBase64String($bytes))
+  } catch { return $null }
+}
+
+function Get-AppDisplayName($pkg, [string]$installLocation) {
+  try {
+    if ($installLocation -and (Test-Path -LiteralPath $installLocation)) {
+      $manifestPath = Join-Path $installLocation 'AppxManifest.xml'
+      if (Test-Path -LiteralPath $manifestPath) {
+        [xml]$xml = Get-Content -LiteralPath $manifestPath -Encoding UTF8
+        $dn = $xml.Package.Properties.DisplayName
+        if ($dn -and $dn -notmatch '^ms-resource:') { return [string]$dn }
+      }
+    }
+  } catch {}
+  if ($pkg.Name) { return [string]$pkg.Name }
+  return 'Unknown'
+}
+
+$byName = @{}
+$pkgs = @(Get-AppxPackage -ErrorAction SilentlyContinue | Where-Object {
+  -not $_.IsFramework -and -not $_.NonRemovable -and $_.SignatureKind -ne 'System'
+})
+foreach ($p in $pkgs) {
+  if (Test-Protected $p.Name) { continue }
+  $icon = Get-AppIconDataUrl $p.InstallLocation
+  $display = Get-AppDisplayName $p $p.InstallLocation
+  $byName[$p.Name] = [pscustomobject]@{
+    name = $p.Name
+    displayName = $display
+    packageFullName = $p.PackageFullName
+    installed = $true
+    iconDataUrl = $icon
+  }
+}
+
+# Ensure known consumer bloat appears when installed (in case filters missed)
+foreach ($n in $known) {
+  if (Test-Protected $n) { continue }
+  if ($byName.ContainsKey($n)) { continue }
+  $found = @(Get-AppxPackage -Name $n -ErrorAction SilentlyContinue)
+  foreach ($p in $found) {
+    $icon = Get-AppIconDataUrl $p.InstallLocation
+    $display = Get-AppDisplayName $p $p.InstallLocation
+    $byName[$p.Name] = [pscustomobject]@{
+      name = $p.Name
+      displayName = $display
+      packageFullName = $p.PackageFullName
+      installed = $true
+      iconDataUrl = $icon
     }
   }
 }
-$out | ConvertTo-Json -Compress
+
+$out = @($byName.Values | Sort-Object displayName, name)
+$out | ConvertTo-Json -Compress -Depth 4
 `)
-  let parsed: { name: string; packageFullName: string; installed: boolean | string }[] = []
+
+  let parsed: {
+    name: string
+    displayName?: string
+    packageFullName: string
+    installed: boolean | string
+    iconDataUrl?: string | null
+  }[] = []
   try {
     const raw = (r.stdout || '').trim()
     if (raw) {
@@ -360,23 +589,28 @@ $out | ConvertTo-Json -Compress
   } catch {
     parsed = []
   }
-  const byName = new Map<string, BloatwareApp>()
-  for (const n of BLOATWARE_CANDIDATES) {
-    byName.set(n, { name: n, packageFullName: '', installed: false, selectedByDefault: true })
-  }
+
+  const apps: BloatwareApp[] = []
+  const seen = new Set<string>()
   for (const row of parsed) {
+    if (!row?.name || seen.has(row.name) || isProtectedPackage(row.name)) continue
+    seen.add(row.name)
     const installed = row.installed === true || row.installed === 'True' || row.installed === 'true'
-    const existing = byName.get(row.name)
-    if (existing) {
-      existing.installed = existing.installed || installed
-      if (installed && row.packageFullName) existing.packageFullName = row.packageFullName
-    }
+    apps.push({
+      name: row.name,
+      displayName: (row.displayName && String(row.displayName).trim()) || row.name,
+      packageFullName: row.packageFullName || '',
+      installed,
+      selectedByDefault: false,
+      iconDataUrl: row.iconDataUrl || undefined
+    })
   }
-  return [...byName.values()]
+  apps.sort((a, b) => a.displayName.localeCompare(b.displayName) || a.name.localeCompare(b.name))
+  return apps
 }
 
 export async function removeBloatwareApps(names: string[]): Promise<{ ok: boolean; message: string; removed: string[] }> {
-  const safe = names.filter((n) => (BLOATWARE_CANDIDATES as readonly string[]).includes(n))
+  const safe = [...new Set(names.filter((n) => n && !isProtectedPackage(n)))]
   if (safe.length === 0) return { ok: true, message: 'No apps selected.', removed: [] }
   const list = safe.map((n) => "'" + n.replace(/'/g, "''") + "'").join(',')
   const r = await runPs(`
